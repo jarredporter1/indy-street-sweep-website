@@ -1,26 +1,33 @@
-// Run with: npx tsx scripts/seed-sheet.ts
+// Run with: npx tsx scripts/update-rally-points.ts
+// Updates ONLY the RallyPoints sheet — does NOT touch Signups
 import { google } from "googleapis";
-
-const SHEET_ID = "1DUxW613nO5So3YFGlIybwvwwAzd6BKd0RrMJXH5VwoQ";
-
 import * as fs from "fs";
 import * as path from "path";
 
-const keyFile = JSON.parse(
-  fs.readFileSync(
-    path.join("/Users/jarredporter/Downloads", "indy-street-sweep-5b686d65ce32.json"),
-    "utf8"
-  )
-);
+// Load .env.local manually (no dotenv dependency needed)
+const envFile = fs.readFileSync(path.join(__dirname, "..", ".env.local"), "utf8");
+const env: Record<string, string> = {};
+for (const line of envFile.split("\n")) {
+  const match = line.match(/^([^#=]+)=(.*)$/);
+  if (match) {
+    let val = match[2].trim();
+    if (val.startsWith('"') && val.endsWith('"')) val = val.slice(1, -1);
+    env[match[1].trim()] = val;
+  }
+}
+
+const SHEET_ID = env.GOOGLE_SHEET_ID;
 
 const auth = new google.auth.JWT({
-  email: keyFile.client_email,
-  key: keyFile.private_key,
+  email: env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+  key: env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
   scopes: ["https://www.googleapis.com/auth/spreadsheets"],
 });
 
 const sheets = google.sheets({ version: "v4", auth });
 
+// IDs rp-1 through rp-13, rp-16 through rp-21 kept for existing parks
+// IDs rp-14, rp-15, rp-22-25 reused for new parks (old parks had 0 signups)
 const RALLY_POINTS = [
   // DOWNTOWN CORE
   ["rp-2",  "White River State Park",                  "801 W Washington St, Indianapolis, IN",                "39.7655", "-86.1710", "", "50", "Downtown",       ""],
@@ -68,79 +75,47 @@ const RALLY_POINTS = [
   ["rp-25", "Rhodius Park",                            "1720 W Wilkins St, Indianapolis, IN",                  "39.7545", "-86.1927", "", "20", "West",           ""],
 ];
 
-async function seed() {
-  console.log("Setting up Google Sheet with updated rally points...");
+async function update() {
+  console.log("Updating RallyPoints sheet (preserving Signups)...\n");
 
-  // Get existing sheet info
-  const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID });
-  const existingSheets = spreadsheet.data.sheets || [];
-
-  const requests: any[] = [];
-
-  // Rename first sheet to RallyPoints if needed
-  const firstSheet = existingSheets[0];
-  if (firstSheet && firstSheet.properties?.title !== "RallyPoints") {
-    requests.push({
-      updateSheetProperties: {
-        properties: { sheetId: firstSheet.properties?.sheetId, title: "RallyPoints" },
-        fields: "title",
-      },
-    });
-  }
-
-  // Add Signups sheet if it doesn't exist
-  const hasSignups = existingSheets.some((s) => s.properties?.title === "Signups");
-  if (!hasSignups) {
-    requests.push({
-      addSheet: { properties: { title: "Signups" } },
-    });
-  }
-
-  if (requests.length > 0) {
-    await sheets.spreadsheets.batchUpdate({
-      spreadsheetId: SHEET_ID,
-      requestBody: { requests },
-    });
-  }
-
-  // Clear existing data first
-  console.log("Clearing old data...");
+  // Clear only the RallyPoints data (keep header row by clearing A2 onward)
+  console.log("Clearing old rally point data...");
   await sheets.spreadsheets.values.clear({
     spreadsheetId: SHEET_ID,
-    range: "RallyPoints!A1:Z1000",
-  });
-  await sheets.spreadsheets.values.clear({
-    spreadsheetId: SHEET_ID,
-    range: "Signups!A1:Z1000",
+    range: "RallyPoints!A2:I100",
   });
 
-  // Write RallyPoints headers + data
-  console.log("Writing 25 rally points...");
+  // Write new rally point data
+  console.log(`Writing ${RALLY_POINTS.length} rally points...`);
   await sheets.spreadsheets.values.update({
     spreadsheetId: SHEET_ID,
-    range: "RallyPoints!A1",
+    range: "RallyPoints!A2",
     valueInputOption: "RAW",
     requestBody: {
-      values: [
-        ["id", "name", "address", "lat", "lng", "description", "capacity", "zone", "site_leader_id"],
-        ...RALLY_POINTS,
-      ],
+      values: RALLY_POINTS,
     },
   });
 
-  // Write Signups headers
-  await sheets.spreadsheets.values.update({
+  // Verify
+  const verify = await sheets.spreadsheets.values.get({
     spreadsheetId: SHEET_ID,
-    range: "Signups!A1",
-    valueInputOption: "RAW",
-    requestBody: {
-      values: [
-        ["name", "email", "phone", "group_size", "church", "rally_point_id", "tshirt_size", "role", "previous_experience", "signed_up_at"],
-      ],
-    },
+    range: "RallyPoints!A1:I26",
   });
+  const rows = verify.data.values || [];
+  console.log(`\nVerified: ${rows.length - 1} rally points in sheet (plus header)`);
 
-  console.log("Done! 25 rally points written. Signups cleared for fresh start.");
+  // Check signups are intact
+  const signups = await sheets.spreadsheets.values.get({
+    spreadsheetId: SHEET_ID,
+    range: "Signups!A2:A",
+  });
+  const signupCount = (signups.data.values || []).length;
+  console.log(`Signups preserved: ${signupCount} rows\n`);
+
+  // Print summary
+  const totalCap = RALLY_POINTS.reduce((sum, rp) => sum + parseInt(rp[6]), 0);
+  console.log(`Total capacity: ${totalCap} volunteers across ${RALLY_POINTS.length} parks`);
+  console.log("Done!");
 }
 
-seed().catch(console.error);
+update().catch(console.error);
