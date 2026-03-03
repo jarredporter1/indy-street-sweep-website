@@ -29,7 +29,6 @@ interface FormState {
   church: string;
   tshirtSize: string;
   previousExperience: string;
-  trialRunAvailable: boolean;
 }
 
 export function SignUpForm({ rallyPoints, preselectedRallyPointId, onClose }: SignUpFormProps) {
@@ -48,7 +47,6 @@ export function SignUpForm({ rallyPoints, preselectedRallyPointId, onClose }: Si
     church: "",
     tshirtSize: "",
     previousExperience: "",
-    trialRunAvailable: false,
   });
 
   function updateForm<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -108,7 +106,6 @@ export function SignUpForm({ rallyPoints, preselectedRallyPointId, onClose }: Si
           role: form.role,
           rallyPointId: form.rallyPointId,
           previousExperience: form.previousExperience.trim() || undefined,
-          trialRunAvailable: form.role === "site_leader" ? form.trialRunAvailable : undefined,
         }),
       });
 
@@ -255,9 +252,7 @@ export function SignUpForm({ rallyPoints, preselectedRallyPointId, onClose }: Si
             {form.role === "site_leader" && (
               <SiteLeaderFields
                 previousExperience={form.previousExperience}
-                trialRunAvailable={form.trialRunAvailable}
                 onExperienceChange={(v) => updateForm("previousExperience", v)}
-                onTrialRunChange={(v) => updateForm("trialRunAvailable", v)}
                 error={errors.previousExperience}
               />
             )}

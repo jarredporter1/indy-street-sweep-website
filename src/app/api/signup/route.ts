@@ -74,7 +74,6 @@ export async function POST(request: NextRequest) {
       role: data.role,
       rallyPointId: data.rallyPointId,
       previousExperience: data.previousExperience || null,
-      trialRunAvailable: data.trialRunAvailable ?? null,
     });
 
     const rallyPoint = await getRallyPointById(data.rallyPointId);

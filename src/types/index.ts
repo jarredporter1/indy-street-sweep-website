@@ -26,7 +26,6 @@ export interface Volunteer {
   role: "volunteer" | "site_leader";
   rally_point_id: string;
   previous_experience: string | null;
-  trial_run_available: boolean | null;
   created_at: string;
 }
 
@@ -40,7 +39,6 @@ export interface SignupFormData {
   role: "volunteer" | "site_leader";
   rallyPointId: string;
   previousExperience: string;
-  trialRunAvailable: boolean;
 }
 
 export interface SignupConfirmation {

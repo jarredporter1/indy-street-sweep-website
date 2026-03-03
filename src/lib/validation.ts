@@ -14,7 +14,6 @@ export const signupSchema = z.object({
   role: z.enum(["volunteer", "site_leader"]),
   rallyPointId: z.string().min(1, "Please select a rally point").max(20),
   previousExperience: z.string().max(1000).optional().or(z.literal("")),
-  trialRunAvailable: z.boolean().optional(),
 });
 
 export type SignupInput = z.infer<typeof signupSchema>;

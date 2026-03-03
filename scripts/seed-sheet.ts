@@ -127,7 +127,7 @@ async function seed() {
     valueInputOption: "RAW",
     requestBody: {
       values: [
-        ["name", "email", "phone", "group_size", "church", "rally_point_id", "tshirt_size", "role", "previous_experience", "trial_run_available", "signed_up_at"],
+        ["name", "email", "phone", "group_size", "church", "rally_point_id", "tshirt_size", "role", "previous_experience", "signed_up_at"],
       ],
     },
   });

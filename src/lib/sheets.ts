@@ -95,7 +95,6 @@ export async function addSignup(data: {
   role: string;
   rallyPointId: string;
   previousExperience: string | null;
-  trialRunAvailable: boolean | null;
 }) {
   const sheets = getSheets();
   const now = new Date().toISOString();
@@ -116,7 +115,7 @@ export async function addSignup(data: {
           data.tshirtSize,
           data.role,
           sanitizeForSheet(data.previousExperience || ""),
-          data.trialRunAvailable ?? "",
+          "", // legacy trial_run_available column — safe to delete from sheet later
           now,
         ],
       ],

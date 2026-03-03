@@ -2,17 +2,13 @@
 
 interface SiteLeaderFieldsProps {
   previousExperience: string;
-  trialRunAvailable: boolean;
   onExperienceChange: (value: string) => void;
-  onTrialRunChange: (value: boolean) => void;
   error?: string;
 }
 
 export function SiteLeaderFields({
   previousExperience,
-  trialRunAvailable,
   onExperienceChange,
-  onTrialRunChange,
   error,
 }: SiteLeaderFieldsProps) {
   return (
@@ -36,22 +32,6 @@ export function SiteLeaderFields({
         {error && <p className="text-xs text-red-500">{error}</p>}
       </div>
 
-      <label className="flex items-start gap-3 cursor-pointer">
-        <input
-          type="checkbox"
-          checked={trialRunAvailable}
-          onChange={(e) => onTrialRunChange(e.target.checked)}
-          className="mt-0.5 w-4 h-4 rounded border-gray-300 text-indy-red focus:ring-indy-red"
-        />
-        <div>
-          <span className="text-sm font-medium text-gray-700">
-            I can attend the trial run
-          </span>
-          <p className="text-xs text-gray-500 mt-0.5">
-            We&apos;ll have a practice sweep before the main event to prep site leaders.
-          </p>
-        </div>
-      </label>
     </div>
   );
 }
