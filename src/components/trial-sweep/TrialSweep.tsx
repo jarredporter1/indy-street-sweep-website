@@ -42,10 +42,11 @@ export function TrialSweep() {
             </div>
           </div>
 
-          {/* TODO: Replace href with actual Eventbrite link */}
           <div>
             <a
-              href="#"
+              href="https://www.eventbrite.com/e/1983552917171?aff=oddtdtcreator"
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center justify-center font-semibold rounded-full transition-all duration-200 bg-white text-indy-navy hover:bg-white/90 active:scale-[0.98] px-8 py-3.5 text-sm"
             >
               Sign Up for Trial Sweep
