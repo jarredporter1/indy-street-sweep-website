@@ -6,9 +6,8 @@ import { LiveCounter } from "./LiveCounter";
 
 export function Hero() {
   return (
-    <section className="section-px pt-0 pb-0">
-      {/* Rounded image container — inset from page edges like Vectura */}
-      <div className="relative w-full min-h-[70vh] sm:min-h-[85vh] rounded-2xl overflow-hidden">
+    <section className="pt-0 pb-0">
+      <div className="relative w-full min-h-[70vh] sm:min-h-[85vh] overflow-hidden">
         {/* Background image with fallback */}
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat bg-indy-navy"

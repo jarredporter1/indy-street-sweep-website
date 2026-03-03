@@ -5,9 +5,8 @@ import { Hero } from "@/components/hero/Hero";
 import { Partners } from "@/components/partners/Partners";
 import { About } from "@/components/about/About";
 import { EventInfo } from "@/components/event-info/EventInfo";
-import { GetInvolved } from "@/components/get-involved/GetInvolved";
 import { FAQ } from "@/components/faq/FAQ";
-import { BottomCTA } from "@/components/cta/BottomCTA";
+import { GetInvolved } from "@/components/get-involved/GetInvolved";
 import { Footer } from "@/components/footer/Footer";
 
 export default function Home() {
@@ -18,9 +17,8 @@ export default function Home() {
       <Partners />
       <About />
       <EventInfo />
-      <GetInvolved />
       <FAQ />
-      <BottomCTA />
+      <GetInvolved />
       <Footer />
     </main>
   );
