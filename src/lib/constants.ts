@@ -54,17 +54,12 @@ export const RALLY_POINT_SEED_DATA = [
 
 export const TSHIRT_SIZES = ["XS", "S", "M", "L", "XL", "2XL", "3XL"] as const;
 
-export const MEETING_AVAILABILITY_OPTIONS = [
-  "April meeting",
-  "May meeting",
-  "Both",
-  "Neither but I'm still in",
-] as const;
-
-export const MEETING_FORMAT_OPTIONS = [
-  "In-person at 6338 Westfield Blvd",
+export const MEETING_OPTIONS = [
+  "April meeting at 6338 Westfield Blvd",
+  "May meeting at 6338 Westfield Blvd",
   "Google Meet",
   "Either works",
+  "Neither, but I'm still in",
 ] as const;
 
 export const FAQ_CATEGORIES = [

@@ -50,8 +50,7 @@ export async function POST(request: NextRequest) {
     if (data.role === "site_leader") {
       const missing: Record<string, string[]> = {};
       if (!data.previousSweep) missing.previousSweep = ["Please select an option"];
-      if (!data.meetingAvailability) missing.meetingAvailability = ["Please select your availability"];
-      if (!data.meetingFormat) missing.meetingFormat = ["Please select a format"];
+      if (!data.meetingPreference) missing.meetingPreference = ["Please select an option"];
       if (Object.keys(missing).length > 0) {
         return NextResponse.json({ errors: missing }, { status: 400 });
       }
@@ -88,9 +87,7 @@ export async function POST(request: NextRequest) {
       rallyPointId: data.rallyPointId,
       groupMembers,
       previousSweep: data.previousSweep ?? null,
-      meetingAvailability: data.meetingAvailability ?? null,
-      meetingFormat: data.meetingFormat ?? null,
-      expectedVolunteers: data.expectedVolunteers ?? null,
+      meetingPreference: data.meetingPreference ?? null,
     });
 
     const rallyPoint = await getRallyPointById(data.rallyPointId);
@@ -114,9 +111,7 @@ export async function POST(request: NextRequest) {
         eventTime: EVENT_TIME_DISPLAY,
         groupMembers: groupMembers.length > 0 ? groupMembers : undefined,
         previousSweep: data.previousSweep ?? undefined,
-        meetingAvailability: data.meetingAvailability ?? undefined,
-        meetingFormat: data.meetingFormat ?? undefined,
-        expectedVolunteers: data.expectedVolunteers ?? undefined,
+        meetingPreference: data.meetingPreference ?? undefined,
       }),
     }).catch((err) => console.error("Make webhook error:", err));
 

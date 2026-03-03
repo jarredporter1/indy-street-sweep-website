@@ -1,7 +1,9 @@
 "use client";
 
 import type { GroupMember } from "@/types";
+import { TSHIRT_SIZES } from "@/lib/constants";
 import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 
 interface GroupMemberFieldsProps {
   members: GroupMember[];
@@ -27,7 +29,7 @@ export function GroupMemberFields({ members, onChange, errors }: GroupMemberFiel
             Person #{i + 2}
             {i > 0 && <span className="font-normal normal-case tracking-normal"> (optional)</span>}
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <Input
               label="Name"
               placeholder="Their name"
@@ -44,6 +46,13 @@ export function GroupMemberFields({ members, onChange, errors }: GroupMemberFiel
               onChange={(e) => updateMember(i, "email", e.target.value)}
               error={errors?.[`groupMembers.${i}.email`]}
               required={i === 0}
+            />
+            <Select
+              label="T-Shirt Size"
+              value={member.tshirtSize || ""}
+              onChange={(e) => updateMember(i, "tshirtSize", e.target.value)}
+              placeholder="Select size"
+              options={TSHIRT_SIZES.map((s) => ({ value: s, label: s }))}
             />
           </div>
         </div>

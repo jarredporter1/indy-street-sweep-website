@@ -3,6 +3,7 @@ import { z } from "zod/v4";
 const groupMemberSchema = z.object({
   name: z.string().min(1, "Name is required").max(100),
   email: z.string().email("Please enter a valid email").max(254),
+  tshirtSize: z.enum(["XS", "S", "M", "L", "XL", "2XL", "3XL"]).optional().or(z.literal("")),
 });
 
 export const signupSchema = z.object({
@@ -19,9 +20,7 @@ export const signupSchema = z.object({
   groupMembers: z.array(groupMemberSchema).optional().default([]),
   // Site leader fields — optional at schema level, enforced when role === "site_leader"
   previousSweep: z.enum(["yes", "no"]).optional(),
-  meetingAvailability: z.enum(["April meeting", "May meeting", "Both", "Neither but I'm still in"]).optional(),
-  meetingFormat: z.enum(["In-person at 6338 Westfield Blvd", "Google Meet", "Either works"]).optional(),
-  expectedVolunteers: z.number().int().min(0).optional(),
+  meetingPreference: z.enum(["April meeting at 6338 Westfield Blvd", "May meeting at 6338 Westfield Blvd", "Google Meet", "Either works", "Neither, but I'm still in"]).optional(),
 });
 
 export type SignupInput = z.infer<typeof signupSchema>;

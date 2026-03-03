@@ -33,9 +33,7 @@ interface FormState {
   groupMembers: GroupMember[];
   // Site leader fields
   previousSweep: string;
-  meetingAvailability: string;
-  meetingFormat: string;
-  expectedVolunteers: string;
+  meetingPreference: string;
 }
 
 export function SignUpForm({ rallyPoints, preselectedRallyPointId, onClose }: SignUpFormProps) {
@@ -56,9 +54,7 @@ export function SignUpForm({ rallyPoints, preselectedRallyPointId, onClose }: Si
     bringingOthers: false,
     groupMembers: [],
     previousSweep: "",
-    meetingAvailability: "",
-    meetingFormat: "",
-    expectedVolunteers: "",
+    meetingPreference: "",
   });
 
   function updateForm<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -75,7 +71,7 @@ export function SignUpForm({ rallyPoints, preselectedRallyPointId, onClose }: Si
     if (bringing) {
       // Default to 2 total (1 additional member)
       updateForm("groupSize", 2);
-      updateForm("groupMembers", [{ name: "", email: "" }]);
+      updateForm("groupMembers", [{ name: "", email: "", tshirtSize: "" }]);
     } else {
       updateForm("groupSize", 1);
       updateForm("groupMembers", []);
@@ -94,6 +90,7 @@ export function SignUpForm({ rallyPoints, preselectedRallyPointId, onClose }: Si
         ...Array.from({ length: additionalCount - currentMembers.length }, () => ({
           name: "",
           email: "",
+          tshirtSize: "",
         })),
       ];
     } else {
@@ -152,8 +149,7 @@ export function SignUpForm({ rallyPoints, preselectedRallyPointId, onClose }: Si
     // Site leader validations
     if (form.role === "site_leader") {
       if (!form.previousSweep) newErrors.previousSweep = "Please select an option";
-      if (!form.meetingAvailability) newErrors.meetingAvailability = "Please select your availability";
-      if (!form.meetingFormat) newErrors.meetingFormat = "Please select a format";
+      if (!form.meetingPreference) newErrors.meetingPreference = "Please select an option";
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -185,14 +181,11 @@ export function SignUpForm({ rallyPoints, preselectedRallyPointId, onClose }: Si
           groupMembers: filledMembers.map((m) => ({
             name: m.name.trim(),
             email: m.email.trim(),
+            tshirtSize: m.tshirtSize || undefined,
           })),
           ...(form.role === "site_leader" && {
             previousSweep: form.previousSweep,
-            meetingAvailability: form.meetingAvailability,
-            meetingFormat: form.meetingFormat,
-            expectedVolunteers: form.expectedVolunteers
-              ? parseInt(form.expectedVolunteers)
-              : undefined,
+            meetingPreference: form.meetingPreference,
           }),
         }),
       });
@@ -380,9 +373,7 @@ export function SignUpForm({ rallyPoints, preselectedRallyPointId, onClose }: Si
             {form.role === "site_leader" && (
               <SiteLeaderFields
                 previousSweep={form.previousSweep}
-                meetingAvailability={form.meetingAvailability}
-                meetingFormat={form.meetingFormat}
-                expectedVolunteers={form.expectedVolunteers}
+                meetingPreference={form.meetingPreference}
                 onFieldChange={handleSiteLeaderFieldChange}
                 errors={errors}
               />

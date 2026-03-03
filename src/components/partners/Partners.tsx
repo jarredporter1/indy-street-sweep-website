@@ -11,7 +11,7 @@ const PARTNERS = [
 
 export function Partners() {
   return (
-    <section id="partners" className="pt-16 pb-24 sm:pt-20 sm:pb-40 section-px">
+    <section id="partners" className="pt-16 pb-10 sm:pt-20 sm:pb-14 section-px">
       <div className="text-center space-y-10">
         <div className="space-y-3">
           <p className="text-sm font-medium text-indy-red uppercase tracking-wider">

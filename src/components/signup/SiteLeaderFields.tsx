@@ -1,23 +1,18 @@
 "use client";
 
-import { MEETING_AVAILABILITY_OPTIONS, MEETING_FORMAT_OPTIONS } from "@/lib/constants";
+import { MEETING_OPTIONS } from "@/lib/constants";
 import { Select } from "@/components/ui/Select";
-import { Input } from "@/components/ui/Input";
 
 interface SiteLeaderFieldsProps {
   previousSweep: string;
-  meetingAvailability: string;
-  meetingFormat: string;
-  expectedVolunteers: string;
+  meetingPreference: string;
   onFieldChange: (field: string, value: string) => void;
   errors?: Record<string, string>;
 }
 
 export function SiteLeaderFields({
   previousSweep,
-  meetingAvailability,
-  meetingFormat,
-  expectedVolunteers,
+  meetingPreference,
   onFieldChange,
   errors,
 }: SiteLeaderFieldsProps) {
@@ -52,36 +47,14 @@ export function SiteLeaderFields({
         )}
       </div>
 
-      {/* Meeting availability */}
+      {/* Meeting preference */}
       <Select
-        label="Can you attend the April or May leader meeting?"
-        value={meetingAvailability}
-        onChange={(e) => onFieldChange("meetingAvailability", e.target.value)}
-        placeholder="Select availability"
-        options={MEETING_AVAILABILITY_OPTIONS.map((o) => ({ value: o, label: o }))}
-        error={errors?.meetingAvailability}
-      />
-
-      {/* Meeting format */}
-      <Select
-        label="Preferred meeting format"
-        value={meetingFormat}
-        onChange={(e) => onFieldChange("meetingFormat", e.target.value)}
-        placeholder="Select format"
-        options={MEETING_FORMAT_OPTIONS.map((o) => ({ value: o, label: o }))}
-        error={errors?.meetingFormat}
-      />
-
-      {/* Expected volunteers */}
-      <Input
-        label="How many volunteers do you expect to bring? (optional)"
-        type="number"
-        min={0}
-        max={100}
-        placeholder="e.g. 10"
-        value={expectedVolunteers}
-        onChange={(e) => onFieldChange("expectedVolunteers", e.target.value)}
-        error={errors?.expectedVolunteers}
+        label="Can you attend a leader meeting?"
+        value={meetingPreference}
+        onChange={(e) => onFieldChange("meetingPreference", e.target.value)}
+        placeholder="Select an option"
+        options={MEETING_OPTIONS.map((o) => ({ value: o, label: o }))}
+        error={errors?.meetingPreference}
       />
     </div>
   );

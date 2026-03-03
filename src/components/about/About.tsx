@@ -2,7 +2,7 @@ import Image from "next/image";
 
 export function About() {
   return (
-    <section id="about" className="py-16 sm:py-24 section-px">
+    <section id="about" className="pt-6 sm:pt-10 pb-16 sm:pb-24 section-px">
       <div className="flex flex-col lg:flex-row gap-12 lg:gap-20 items-stretch">
         {/* Left — text + stats stacked */}
         <div className="lg:max-w-[50%] flex flex-col justify-between gap-10">

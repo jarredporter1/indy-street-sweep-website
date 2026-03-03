@@ -18,6 +18,7 @@ export interface RallyPointWithCount extends RallyPoint {
 export interface GroupMember {
   name: string;
   email: string;
+  tshirtSize?: string;
 }
 
 export interface Volunteer {
@@ -35,9 +36,7 @@ export interface Volunteer {
   group_id: string | null;
   is_group_leader: boolean;
   previous_sweep: string | null;
-  meeting_availability: string | null;
-  meeting_format: string | null;
-  expected_volunteers: number | null;
+  meeting_preference: string | null;
 }
 
 export interface SignupFormData {
@@ -51,9 +50,7 @@ export interface SignupFormData {
   rallyPointId: string;
   groupMembers: GroupMember[];
   previousSweep: string;
-  meetingAvailability: string;
-  meetingFormat: string;
-  expectedVolunteers: number | null;
+  meetingPreference: string;
 }
 
 export interface SignupConfirmation {

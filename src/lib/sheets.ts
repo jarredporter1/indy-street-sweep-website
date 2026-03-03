@@ -41,7 +41,7 @@ export async function getSignups() {
   const sheets = getSheets();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SHEET_ID,
-    range: "Signups!A2:P",
+    range: "Signups!A2:N",
   });
   return res.data.values || [];
 }
@@ -94,11 +94,9 @@ interface SignupData {
   tshirtSize: string | null;
   role: string;
   rallyPointId: string;
-  groupMembers: Array<{ name: string; email: string }>;
+  groupMembers: Array<{ name: string; email: string; tshirtSize?: string }>;
   previousSweep: string | null;
-  meetingAvailability: string | null;
-  meetingFormat: string | null;
-  expectedVolunteers: number | null;
+  meetingPreference: string | null;
 }
 
 export async function addSignup(data: SignupData) {
@@ -125,9 +123,7 @@ export async function addSignup(data: SignupData) {
     hasGroupMembers ? groupId : "",                       // K: group_id
     hasGroupMembers ? "TRUE" : "",                        // L: is_group_leader
     data.previousSweep || "",                             // M: previous_sweep
-    data.meetingAvailability || "",                        // N: meeting_availability
-    data.meetingFormat || "",                              // O: meeting_format
-    data.expectedVolunteers ?? "",                         // P: expected_volunteers
+    data.meetingPreference || "",                          // N: meeting_preference
   ]);
 
   // Additional group member rows
@@ -139,22 +135,20 @@ export async function addSignup(data: SignupData) {
       1,                                                  // D: group_size
       sanitizeForSheet(data.church || ""),                 // E: church (inherit from leader)
       data.rallyPointId,                                  // F: rally_point_id
-      "",                                                 // G: tshirt_size
+      member.tshirtSize || "",                             // G: tshirt_size
       "volunteer",                                        // H: role
       "",                                                 // I: previous_experience (legacy)
       now,                                                // J: signed_up_at
       groupId,                                            // K: group_id
       "FALSE",                                            // L: is_group_leader
       "",                                                 // M: previous_sweep
-      "",                                                 // N: meeting_availability
-      "",                                                 // O: meeting_format
-      "",                                                 // P: expected_volunteers
+      "",                                                 // N: meeting_preference
     ]);
   }
 
   await sheets.spreadsheets.values.append({
     spreadsheetId: SHEET_ID,
-    range: "Signups!A:P",
+    range: "Signups!A:N",
     valueInputOption: "RAW",
     requestBody: { values: rows },
   });
