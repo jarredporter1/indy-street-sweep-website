@@ -75,7 +75,7 @@ const RALLY_POINTS = [
   ["rp-25", "Rhodius Park",                            "1720 W Wilkins St, Indianapolis, IN",                  "39.7545", "-86.1927", "", "20", "West",           ""],
 
   // EAST
-  ["rp-26", "Grassy Creek Regional Park",             "10510 E 30th St, Indianapolis, IN 46229",              "39.8085", "-85.9710", "", "30", "East",           ""],
+  ["rp-26", "Grassy Creek Regional Park",             "10510 E 30th St, Indianapolis, IN 46229",              "39.8145", "-85.9850", "", "30", "East",           ""],
 ];
 
 async function update() {
