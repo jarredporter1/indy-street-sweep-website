@@ -3,7 +3,12 @@ import { signupSchema } from "@/lib/validation";
 import { addSignup, getRallyPointById, getVolunteerCount, getSignups } from "@/lib/sheets";
 import { EVENT_DATE_DISPLAY, EVENT_TIME_DISPLAY } from "@/lib/constants";
 import { buildGroupCode, buildShareLink, detectGroupConflict } from "@/lib/share-link";
-import { addGroupLink, getActiveGroupLinkForRallyPoint } from "@/lib/group-links";
+import {
+  addGroupLink,
+  getActiveGroupLinkForRallyPoint,
+  getActiveGroupLinks,
+  releaseGroupLink,
+} from "@/lib/group-links";
 
 /* ─── Simple in-memory rate limiter ─── */
 const rateMap = new Map<string, { count: number; resetAt: number }>();
@@ -241,13 +246,16 @@ export async function POST(request: NextRequest) {
         ? { conflict: true, conflictingGroupCode: activeClaim.group_code }
         : signupConflict;
 
-      const groupCode = !conflict.conflict ? buildGroupCode(orgNameTrim) : null;
-      const shareLink = groupCode
-        ? buildShareLink({ groupCode, orgName: orgNameTrim, rallyPointId: data.rallyPointId })
-        : "";
+      // Mutable conflict state — may flip to true if the GroupLinks write
+      // fails or we lose a race against another simultaneous claim.
+      let activeConflict = conflict.conflict;
+      let conflictingCode = conflict.conflictingGroupCode;
+      let groupCode: string | null = !activeConflict ? buildGroupCode(orgNameTrim) : null;
+      let groupLinkWriteFailed = false;
 
-      // If we minted a group code, persist the claim so the dashboard, map, and
-      // future intake checks all see the reservation immediately.
+      // Persist the claim so the dashboard, map, and future intake checks all
+      // see the reservation immediately. If the write fails, fall back to the
+      // conflict path so the POC isn't handed a dashboard URL that 404s.
       if (groupCode) {
         try {
           await addGroupLink({
@@ -261,12 +269,46 @@ export async function POST(request: NextRequest) {
           });
         } catch (err) {
           console.error("Failed to write GroupLinks row:", err);
-          // Continue — the share link still works without the metadata row.
+          groupLinkWriteFailed = true;
+          activeConflict = true;
+          conflictingCode = "(GroupLinks write failed — investigate)";
+          groupCode = null;
         }
       }
 
+      // Race-resolution: if two POCs hit the form at the same time, both
+      // would have read no claim and both would have written rows. Read back
+      // and let the earliest-created claim win. Loser releases their row and
+      // takes the conflict path (no auto-link).
+      if (groupCode) {
+        try {
+          const all = await getActiveGroupLinks();
+          const claimsForPark = all
+            .filter((l) => l.rally_point_id === data.rallyPointId)
+            .sort((a, b) => (a.created_at < b.created_at ? -1 : 1));
+          const winner = claimsForPark[0];
+          if (winner && winner.group_code !== groupCode) {
+            // Lost the race — release our row, defer to the winner.
+            await releaseGroupLink(groupCode).catch((err) =>
+              console.error("Failed to release losing claim:", err),
+            );
+            activeConflict = true;
+            conflictingCode = winner.group_code;
+            groupCode = null;
+          }
+        } catch (err) {
+          console.error("Race-resolution check failed:", err);
+          // If we can't read back, trust our write and continue.
+        }
+      }
+
+      const shareLink = groupCode
+        ? buildShareLink({ groupCode, orgName: orgNameTrim, rallyPointId: data.rallyPointId })
+        : "";
+
       // POC opted in to attend → register them as the first volunteer under
-      // this group code so their seat is real (not just reserved).
+      // this group code so their seat is real (not just reserved). Skipped on
+      // conflict (no groupCode to attribute the row to).
       if (data.attending && groupCode) {
         try {
           await addSignup({
@@ -312,9 +354,10 @@ export async function POST(request: NextRequest) {
             shareLink,
             dashboardUrl,
             groupCode: groupCode || "",
-            hasConflict: conflict.conflict,
-            conflictingGroupCode: conflict.conflictingGroupCode || "",
+            hasConflict: activeConflict,
+            conflictingGroupCode: conflictingCode || "",
             pocAttending: Boolean(data.attending),
+            linkGenerationFailed: groupLinkWriteFailed,
           }),
         }).catch((err) => console.error("Make group-lead webhook error:", err));
       } else {
