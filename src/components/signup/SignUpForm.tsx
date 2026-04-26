@@ -47,6 +47,7 @@ interface FormState {
   orgType: OrgType | "";
   expectedSize: number;
   notes: string;
+  attending: boolean;
 }
 
 export function SignUpForm({ rallyPoints, preselectedRallyPointId, shareLink, onClose }: SignUpFormProps) {
@@ -74,6 +75,7 @@ export function SignUpForm({ rallyPoints, preselectedRallyPointId, shareLink, on
     orgType: "",
     expectedSize: 30,
     notes: "",
+    attending: true,
   });
 
   function updateForm<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -160,7 +162,8 @@ export function SignUpForm({ rallyPoints, preselectedRallyPointId, shareLink, on
       setErrors(newErrors);
       return;
     }
-    setStep("location");
+    // Park already chosen via map click → skip location step.
+    setStep(preselectedRallyPointId ? "details" : "location");
   }
 
   function handleLocationSelect(id: string) {
@@ -223,7 +226,7 @@ export function SignUpForm({ rallyPoints, preselectedRallyPointId, shareLink, on
           church: isGroupLead
             ? form.orgName.trim() || undefined
             : form.church.trim() || undefined,
-          tshirtSize: isGroupLead ? undefined : form.tshirtSize || undefined,
+          tshirtSize: form.tshirtSize || undefined,
           role: form.role,
           rallyPointId: form.rallyPointId,
           groupMembers: isGroupLead
@@ -242,6 +245,7 @@ export function SignUpForm({ rallyPoints, preselectedRallyPointId, shareLink, on
             orgType: form.orgType || undefined,
             expectedSize: form.expectedSize,
             notes: form.notes.trim() || undefined,
+            attending: form.attending,
           }),
           ...(shareLink && { groupCode: shareLink.groupCode }),
         }),
@@ -290,14 +294,24 @@ export function SignUpForm({ rallyPoints, preselectedRallyPointId, shareLink, on
     ? selectedRallyPoint.volunteer_count >= selectedRallyPoint.capacity
     : false;
 
-  // Step indicator: omit "groupDetails" pip unless we're on the group_lead path
+  // Step indicator: omit "groupDetails" pip unless we're on the group_lead path,
+  // and omit "location" pip when the park was already chosen via map click.
   const stepKeys: Step[] = isGroupLead
-    ? ["role", "groupDetails", "location", "details"]
-    : ["role", "location", "details"];
+    ? preselectedRallyPointId
+      ? ["role", "groupDetails", "details"]
+      : ["role", "groupDetails", "location", "details"]
+    : preselectedRallyPointId
+      ? ["role", "details"]
+      : ["role", "location", "details"];
 
   function backFromDetails() {
     if (isShareLinkMode) {
       // Share-link landed straight on details; nothing to go back to here
+      return;
+    }
+    // Group lead with preselected park: details → groupDetails (skip location).
+    if (preselectedRallyPointId && isGroupLead) {
+      setStep("groupDetails");
       return;
     }
     if (preselectedRallyPointId && !isGroupLead) {
@@ -436,7 +450,47 @@ export function SignUpForm({ rallyPoints, preselectedRallyPointId, shareLink, on
               </div>
             )}
 
-            {!isGroupLead && (
+            {isGroupLead && (
+              <div className="space-y-3">
+                <p className="block text-sm font-medium text-gray-700">
+                  Are you attending too?
+                </p>
+                <div className="flex gap-3">
+                  {([
+                    { value: true, label: "Yes, count me in" },
+                    { value: false, label: "No, I'm just coordinating" },
+                  ] as const).map(({ value, label }) => (
+                    <button
+                      key={label}
+                      type="button"
+                      onClick={() => updateForm("attending", value)}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                        form.attending === value
+                          ? "bg-indy-navy text-white border-indy-navy"
+                          : "bg-white text-gray-700 border-gray-300 hover:border-gray-400"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {isGroupLead && form.attending && (
+              <div className="max-w-[200px]">
+                <Select
+                  label="Your T-Shirt Size (optional)"
+                  value={form.tshirtSize}
+                  onChange={(e) => updateForm("tshirtSize", e.target.value)}
+                  placeholder="Select size"
+                  options={TSHIRT_SIZES.map((s) => ({ value: s, label: s }))}
+                  error={errors.tshirtSize}
+                />
+              </div>
+            )}
+
+            {!isGroupLead && !isShareLinkMode && (
               <div className="space-y-3">
                 <p className="block text-sm font-medium text-gray-700">
                   Are you bringing other people?
@@ -463,14 +517,14 @@ export function SignUpForm({ rallyPoints, preselectedRallyPointId, shareLink, on
               </div>
             )}
 
-            {!isGroupLead && form.bringingOthers && (
+            {!isGroupLead && !isShareLinkMode && form.bringingOthers && (
               <div className="space-y-4">
                 <div className="max-w-[200px]">
                   <Select
                     label="How many people total (including you)?"
                     value={String(form.groupSize)}
                     onChange={(e) => handleGroupSizeChange(parseInt(e.target.value))}
-                    options={Array.from({ length: 9 }, (_, i) => ({
+                    options={Array.from({ length: 24 }, (_, i) => ({
                       value: String(i + 2),
                       label: String(i + 2),
                     }))}
@@ -495,7 +549,7 @@ export function SignUpForm({ rallyPoints, preselectedRallyPointId, shareLink, on
 
             {isGroupLead && (
               <p className="text-sm text-gray-500">
-                After you submit, we&apos;ll email you within 1&ndash;2 business days to confirm your park and send a sign-up link you can share with your group.
+                After you submit, we&apos;ll email you a unique sign-up link to share with your group. If your preferred park is already adopted by another group, we&apos;ll reach out within 1&ndash;2 business days to find you another spot.
               </p>
             )}
           </div>

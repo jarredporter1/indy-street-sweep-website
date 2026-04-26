@@ -37,19 +37,31 @@ export async function getRallyPoints() {
   }));
 }
 
+/**
+ * Signups sheet column map (kept here so writes/reads agree):
+ *   A name, B email, C phone, D group_size, E church, F rally_point_id,
+ *   G tshirt_size, H role, I previous_experience (legacy), J signed_up_at,
+ *   K group_id, L is_group_leader, M previous_sweep, N meeting_preference,
+ *   O sent_site_leader_email (manual by Trace), P responded (manual by Trace),
+ *   Q group_code (auto, share-link tracking).
+ */
+export const COL_GROUP_CODE = 16; // column Q (zero-indexed)
+
 export async function getSignups() {
   const sheets = getSheets();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SHEET_ID,
-    range: "Signups!A2:O",
+    range: "Signups!A2:Q",
   });
   return res.data.values || [];
 }
 
 export async function getRallyPointsWithCounts() {
-  const [rallyPoints, signupRows] = await Promise.all([
+  const { getActiveGroupLinks } = await import("@/lib/group-links");
+  const [rallyPoints, signupRows, activeLinks] = await Promise.all([
     getRallyPoints(),
     getSignups(),
+    getActiveGroupLinks().catch(() => []),
   ]);
 
   // Count volunteers per rally point (column F = index 5 = rallyPointId, column D = index 3 = groupSize)
@@ -62,10 +74,23 @@ export async function getRallyPointsWithCounts() {
     counts[rpId].volunteers += groupSize;
   }
 
+  // Map active group claims onto their rally points (one claim per park).
+  const adoptionByPark: Record<string, { orgName: string; code: string; expected: number }> = {};
+  for (const link of activeLinks) {
+    adoptionByPark[link.rally_point_id] = {
+      orgName: link.org_name,
+      code: link.group_code,
+      expected: link.expected_size,
+    };
+  }
+
   return rallyPoints.map((rp) => ({
     ...rp,
     volunteer_count: counts[rp.id]?.volunteers || 0,
     signup_count: counts[rp.id]?.signups || 0,
+    adopted_by: adoptionByPark[rp.id]?.orgName ?? null,
+    adopted_code: adoptionByPark[rp.id]?.code ?? null,
+    expected_size: adoptionByPark[rp.id]?.expected ?? 0,
   }));
 }
 
@@ -125,7 +150,9 @@ export async function addSignup(data: SignupData) {
     hasGroupMembers ? "TRUE" : "",                        // L: is_group_leader
     data.previousSweep || "",                             // M: previous_sweep
     data.meetingPreference || "",                          // N: meeting_preference
-    sanitizeForSheet(data.groupCode || ""),               // O: group_code
+    "",                                                   // O: sent_site_leader_email (manual)
+    "",                                                   // P: responded (manual)
+    sanitizeForSheet(data.groupCode || ""),               // Q: group_code
   ]);
 
   // Additional group member rows
@@ -145,13 +172,15 @@ export async function addSignup(data: SignupData) {
       "FALSE",                                            // L: is_group_leader
       "",                                                 // M: previous_sweep
       "",                                                 // N: meeting_preference
-      sanitizeForSheet(data.groupCode || ""),             // O: group_code (inherit)
+      "",                                                 // O: sent_site_leader_email
+      "",                                                 // P: responded
+      sanitizeForSheet(data.groupCode || ""),             // Q: group_code (inherit)
     ]);
   }
 
   await sheets.spreadsheets.values.append({
     spreadsheetId: SHEET_ID,
-    range: "Signups!A:O",
+    range: "Signups!A:Q",
     valueInputOption: "RAW",
     requestBody: { values: rows },
   });

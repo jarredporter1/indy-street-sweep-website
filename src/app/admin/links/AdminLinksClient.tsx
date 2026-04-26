@@ -4,6 +4,8 @@ import { useState, useTransition } from "react";
 import {
   generateShareLink,
   loadAdminContext,
+  releaseGroupLinkAction,
+  type AdminGroupSummary,
   type AdminRallyPointSummary,
   type GenerateLinkResult,
 } from "./actions";
@@ -14,7 +16,7 @@ import { Button } from "@/components/ui/Button";
 interface UnlockState {
   passcode: string;
   rallyPoints: AdminRallyPointSummary[];
-  groupCounts: Record<string, number>;
+  groups: AdminGroupSummary[];
 }
 
 export function AdminLinksClient() {
@@ -25,9 +27,12 @@ export function AdminLinksClient() {
 
   const [orgName, setOrgName] = useState("");
   const [rallyPointId, setRallyPointId] = useState("");
+  const [expectedSize, setExpectedSize] = useState(20);
+  const [force, setForce] = useState(false);
   const [result, setResult] = useState<GenerateLinkResult | null>(null);
   const [copied, setCopied] = useState(false);
   const [isGenerating, startGenerate] = useTransition();
+  const [releasingCode, setReleasingCode] = useState<string | null>(null);
 
   function handleUnlock(e: React.FormEvent) {
     e.preventDefault();
@@ -41,9 +46,21 @@ export function AdminLinksClient() {
       setUnlocked({
         passcode: passcodeInput,
         rallyPoints: res.rallyPoints,
-        groupCounts: res.groupCounts || {},
+        groups: res.groups || [],
       });
     });
+  }
+
+  async function refresh() {
+    if (!unlocked) return;
+    const res = await loadAdminContext(unlocked.passcode);
+    if (res.ok && res.rallyPoints) {
+      setUnlocked({
+        passcode: unlocked.passcode,
+        rallyPoints: res.rallyPoints,
+        groups: res.groups || [],
+      });
+    }
   }
 
   function handleGenerate(e: React.FormEvent) {
@@ -55,10 +72,29 @@ export function AdminLinksClient() {
     fd.set("passcode", unlocked.passcode);
     fd.set("orgName", orgName);
     fd.set("rallyPointId", rallyPointId);
+    fd.set("expectedSize", String(expectedSize));
+    fd.set("force", force ? "true" : "false");
     startGenerate(async () => {
       const res = await generateShareLink(fd);
       setResult(res);
+      if (res.ok) {
+        setForce(false);
+        await refresh();
+      }
     });
+  }
+
+  async function handleRelease(code: string) {
+    if (!unlocked) return;
+    if (!confirm(`Release the claim on ${code}? Other groups (and random volunteers) will be able to fill the park.`)) return;
+    setReleasingCode(code);
+    const res = await releaseGroupLinkAction(unlocked.passcode, code);
+    setReleasingCode(null);
+    if (!res.ok) {
+      alert(res.error || "Could not release.");
+      return;
+    }
+    await refresh();
   }
 
   async function copyToClipboard(text: string) {
@@ -67,7 +103,7 @@ export function AdminLinksClient() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Clipboard API can fail on insecure contexts; fall back silently
+      // Clipboard API can fail on insecure contexts; ignore silently
     }
   }
 
@@ -99,13 +135,22 @@ export function AdminLinksClient() {
     );
   }
 
-  const rallyPointOptions = unlocked.rallyPoints.map((rp) => ({
-    value: rp.id,
-    label: `${rp.name}${rp.zone ? ` (${rp.zone})` : ""} · ${rp.volunteer_count}/${rp.capacity}${rp.hasSiteLeader ? " · ✓ leader" : ""}`,
-  }));
+  const adoptedParks = new Set(
+    unlocked.rallyPoints.filter((rp) => rp.adoptedBy).map((rp) => rp.id),
+  );
 
-  const groupTotal = Object.values(unlocked.groupCounts).reduce((a, b) => a + b, 0);
-  const groupEntries = Object.entries(unlocked.groupCounts).sort((a, b) => b[1] - a[1]);
+  const rallyPointOptions = unlocked.rallyPoints.map((rp) => {
+    const adoption = rp.adoptedBy ? ` · ⚑ ${rp.adoptedBy}` : "";
+    const leader = rp.hasSiteLeader ? " · ✓ leader" : "";
+    return {
+      value: rp.id,
+      label: `${rp.name}${rp.zone ? ` (${rp.zone})` : ""} · ${rp.volunteer_count}/${rp.capacity}${adoption}${leader}`,
+    };
+  });
+
+  const wouldOverwrite = adoptedParks.has(rallyPointId);
+  const totalSignups = unlocked.groups.reduce((a, b) => a + b.signups, 0);
+  const rallyPointById = Object.fromEntries(unlocked.rallyPoints.map((rp) => [rp.id, rp]));
 
   return (
     <main className="min-h-screen bg-indy-cream py-10 px-4">
@@ -130,18 +175,44 @@ export function AdminLinksClient() {
             required
           />
 
-          <Select
-            label="Rally point"
-            value={rallyPointId}
-            onChange={(e) => setRallyPointId(e.target.value)}
-            placeholder="Select a park"
-            options={rallyPointOptions}
-            required
-          />
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px] gap-4">
+            <Select
+              label="Rally point"
+              value={rallyPointId}
+              onChange={(e) => setRallyPointId(e.target.value)}
+              placeholder="Select a park"
+              options={rallyPointOptions}
+              required
+            />
+            <Input
+              label="Expected size"
+              type="number"
+              min={5}
+              max={50}
+              value={expectedSize || ""}
+              onChange={(e) => setExpectedSize(parseInt(e.target.value || "0", 10))}
+            />
+          </div>
+
+          {wouldOverwrite && (
+            <label className="flex items-start gap-2 text-sm bg-red-50 border border-red-200 rounded-lg p-3 text-red-700">
+              <input
+                type="checkbox"
+                checked={force}
+                onChange={(e) => setForce(e.target.checked)}
+                className="mt-0.5"
+              />
+              <span>
+                This park is already adopted by{" "}
+                <strong>{rallyPointById[rallyPointId]?.adoptedBy}</strong>. Override and issue a
+                second link anyway? (Both groups will compete for the same seats.)
+              </span>
+            </label>
+          )}
 
           <Button
             type="submit"
-            disabled={isGenerating || !orgName.trim() || !rallyPointId}
+            disabled={isGenerating || !orgName.trim() || !rallyPointId || (wouldOverwrite && !force)}
             className="w-full"
           >
             {isGenerating ? "Generating..." : "Generate Share Link"}
@@ -211,29 +282,57 @@ Trace`}
           </div>
         )}
 
-        {groupEntries.length > 0 && (
+        {unlocked.groups.length > 0 && (
           <div className="bg-white p-6 rounded-2xl shadow-sm">
             <div className="flex items-baseline justify-between mb-3">
-              <h2 className="font-heading text-lg font-bold text-indy-navy">Active group links</h2>
+              <h2 className="font-heading text-lg font-bold text-indy-navy">Active group claims</h2>
               <p className="text-xs text-gray-500">
-                {groupTotal} signup{groupTotal === 1 ? "" : "s"} across {groupEntries.length}{" "}
-                group{groupEntries.length === 1 ? "" : "s"}
+                {totalSignups} signup{totalSignups === 1 ? "" : "s"} across {unlocked.groups.length}{" "}
+                claim{unlocked.groups.length === 1 ? "" : "s"}
               </p>
             </div>
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-xs text-gray-400 uppercase tracking-wider text-left">
-                  <th className="py-2 font-medium">Group code</th>
-                  <th className="py-2 font-medium text-right">Signups</th>
+                  <th className="py-2 font-medium">Org</th>
+                  <th className="py-2 font-medium">Park</th>
+                  <th className="py-2 font-medium text-right">Signups / Expected</th>
+                  <th className="py-2 font-medium text-right">Source</th>
+                  <th className="py-2 font-medium text-right">Action</th>
                 </tr>
               </thead>
               <tbody>
-                {groupEntries.map(([code, count]) => (
-                  <tr key={code} className="border-t border-gray-100">
-                    <td className="py-2 font-mono text-xs text-indy-navy">{code}</td>
-                    <td className="py-2 text-right font-semibold text-indy-navy">{count}</td>
-                  </tr>
-                ))}
+                {unlocked.groups.map((g) => {
+                  const park = rallyPointById[g.rallyPointId];
+                  return (
+                    <tr key={g.groupCode} className="border-t border-gray-100">
+                      <td className="py-2">
+                        <div className="text-indy-navy font-medium">{g.orgName}</div>
+                        <div className="font-mono text-[10px] text-gray-400">{g.groupCode}</div>
+                      </td>
+                      <td className="py-2 text-indy-navy">{park?.name || g.rallyPointId}</td>
+                      <td className="py-2 text-right font-semibold text-indy-navy">
+                        {g.signups}
+                        {g.expectedSize > 0 && (
+                          <span className="text-gray-400 font-normal"> / {g.expectedSize}</span>
+                        )}
+                      </td>
+                      <td className="py-2 text-right text-xs text-gray-500 uppercase tracking-wider">
+                        {g.source}
+                      </td>
+                      <td className="py-2 text-right">
+                        <button
+                          type="button"
+                          onClick={() => handleRelease(g.groupCode)}
+                          disabled={releasingCode === g.groupCode}
+                          className="text-xs text-red-600 hover:text-red-700 cursor-pointer disabled:opacity-50"
+                        >
+                          {releasingCode === g.groupCode ? "Releasing..." : "Release"}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

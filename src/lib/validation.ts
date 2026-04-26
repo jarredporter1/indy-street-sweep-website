@@ -26,6 +26,8 @@ export const signupSchema = z.object({
   orgType: z.enum(["church", "company", "nonprofit", "school", "scout_youth", "neighborhood", "other"]).optional(),
   expectedSize: z.number().int().min(5, "At least 5 people").max(50, "Maximum 50 per rally point").optional(),
   notes: z.string().max(1000).optional(),
+  // Group lead → POC's own attendance (writes them as the first volunteer when true)
+  attending: z.boolean().optional(),
   // Share-link tracking (optional, for analytics on group volunteer signups)
   groupCode: z.string().max(60).optional(),
 });

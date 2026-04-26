@@ -48,7 +48,7 @@ export function Modal({ isOpen, onClose, children }: ModalProps) {
         ref={contentRef}
         role="dialog"
         aria-modal="true"
-        className="relative w-full sm:max-w-lg bg-white rounded-t-2xl sm:rounded-2xl max-h-[90vh] flex flex-col shadow-2xl"
+        className="relative w-full sm:max-w-2xl lg:max-w-3xl bg-white rounded-t-2xl sm:rounded-2xl max-h-[90vh] flex flex-col shadow-2xl"
       >
         <button
           onClick={onClose}

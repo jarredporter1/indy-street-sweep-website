@@ -10,6 +10,7 @@ interface ConfirmationViewProps {
 
 export function ConfirmationView({ confirmation, onClose }: ConfirmationViewProps) {
   if (confirmation.role === "group_lead") {
+    const linkSent = confirmation.shareLinkSent;
     return (
       <div className="p-8 text-center space-y-6">
         <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
@@ -25,22 +26,41 @@ export function ConfirmationView({ confirmation, onClose }: ConfirmationViewProp
         </div>
 
         <div className="space-y-2">
-          <h3 className="text-2xl font-black text-indy-navy">Got it — we&apos;ll be in touch.</h3>
+          <h3 className="text-2xl font-black text-indy-navy">
+            {linkSent ? "Check your inbox." : "Got it — we'll be in touch."}
+          </h3>
           <p className="text-gray-600">
-            Thanks, {confirmation.name}. We got your request to bring your group to a rally point.
+            {linkSent
+              ? `Thanks, ${confirmation.name}. We just emailed your share-link.`
+              : `Thanks, ${confirmation.name}. We got your request to bring your group to a rally point.`}
           </p>
         </div>
 
         <div className="bg-white rounded-xl p-6 text-left space-y-3">
-          <p className="text-sm text-gray-700">
-            We&apos;ll email you within 1&ndash;2 business days to confirm a park
-            {confirmation.rallyPoint.name ? ` (you preferred ${confirmation.rallyPoint.name})` : ""}{" "}
-            and send you a sign-up link you can share with your group.
-          </p>
-          <p className="text-sm text-gray-700">
-            Each person on your team will use that link to register themselves — they&apos;ll get
-            their own confirmation, t-shirt size, and event-day reminders.
-          </p>
+          {linkSent ? (
+            <>
+              <p className="text-sm text-gray-700">
+                Your unique sign-up link is in your inbox now. Forward it to your group and have
+                each person register themselves for{" "}
+                <strong>{confirmation.rallyPoint.name}</strong>.
+              </p>
+              <p className="text-sm text-gray-700">
+                Each person gets their own confirmation, t-shirt size, and event-day reminders.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-gray-700">
+                We&apos;ll email you within 1&ndash;2 business days to confirm a park
+                {confirmation.rallyPoint.name ? ` (you preferred ${confirmation.rallyPoint.name})` : ""}{" "}
+                and send you a sign-up link you can share with your group.
+              </p>
+              <p className="text-sm text-gray-700">
+                Each person on your team will use that link to register themselves — they&apos;ll get
+                their own confirmation, t-shirt size, and event-day reminders.
+              </p>
+            </>
+          )}
         </div>
 
         <Button variant="secondary" onClick={onClose} className="w-full">

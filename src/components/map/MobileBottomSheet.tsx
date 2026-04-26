@@ -174,6 +174,22 @@ function DetailContent({
         )}
       </div>
 
+      {point.adopted_by && (
+        <div className="bg-indy-cream border-l-4 border-indy-gold rounded p-3 text-xs text-indy-navy">
+          <p className="font-bold uppercase tracking-wider text-indy-gold mb-0.5">
+            ⚑ Adopted by a group
+          </p>
+          <p className="text-indy-navy">
+            {point.adopted_by}
+            {point.expected_size ? (
+              <span className="text-gray-500">
+                {" "}· {point.volunteer_count} of {point.expected_size} signed up
+              </span>
+            ) : null}
+          </p>
+        </div>
+      )}
+
       {/* CTA */}
       {isFull ? (
         <div className="w-full py-3.5 bg-gray-200 text-gray-500 text-sm font-semibold rounded-xl text-center">
@@ -275,13 +291,18 @@ function ListContent({
                       <p className="text-xs text-gray-500 truncate">
                         {rp.address}
                       </p>
+                      {rp.adopted_by && (
+                        <p className="text-[10px] text-indy-gold font-bold uppercase tracking-wider mt-0.5 truncate">
+                          ⚑ Adopted by {rp.adopted_by}
+                        </p>
+                      )}
                     </div>
                     <div className="text-right shrink-0">
                       {isFull ? (
                         <p className="text-xs font-semibold text-gray-400">Full</p>
                       ) : (
                         <p className="text-xs font-medium" style={{ color }}>
-                          {DENSITY_LABELS[density]}
+                          {rp.adopted_by ? "Group" : DENSITY_LABELS[density]}
                         </p>
                       )}
                       <p className="text-xs text-gray-400">

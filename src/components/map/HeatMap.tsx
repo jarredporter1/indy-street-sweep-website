@@ -140,10 +140,15 @@ export default function HeatMap({ rallyPoints }: HeatMapProps) {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-indy-navy truncate">{rp.name}</p>
                       <p className="text-xs text-gray-500 truncate">{rp.address}</p>
+                      {rp.adopted_by && (
+                        <p className="text-[10px] text-indy-gold font-bold uppercase tracking-wider mt-0.5 truncate">
+                          ⚑ Adopted by {rp.adopted_by}
+                        </p>
+                      )}
                     </div>
                     <div className="text-right shrink-0">
                       <p className="text-xs font-medium" style={{ color }}>
-                        {DENSITY_LABELS[density]}
+                        {rp.adopted_by ? "Group" : DENSITY_LABELS[density]}
                       </p>
                       <p className="text-xs text-gray-400">{rp.volunteer_count}/{rp.capacity}</p>
                     </div>

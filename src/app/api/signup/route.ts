@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { signupSchema } from "@/lib/validation";
 import { addSignup, getRallyPointById, getVolunteerCount, getSignups } from "@/lib/sheets";
 import { EVENT_DATE_DISPLAY, EVENT_TIME_DISPLAY } from "@/lib/constants";
+import { buildGroupCode, buildShareLink, detectGroupConflict } from "@/lib/share-link";
+import { addGroupLink, getActiveGroupLinkForRallyPoint } from "@/lib/group-links";
 
 /* ─── Simple in-memory rate limiter ─── */
 const rateMap = new Map<string, { count: number; resetAt: number }>();
@@ -205,10 +207,10 @@ export async function POST(request: NextRequest) {
     const data = result.data;
     const groupMembers = data.groupMembers ?? [];
 
-    // ── Group-lead intake: register interest only, no sheet write ──
-    // This path is for orgs/churches asking to adopt a whole rally point.
-    // We don't reserve seats or count them as volunteers — Jarred coordinates
-    // by email, then sends a share-link the org distributes to their group.
+    // ── Group-lead intake: claim a park + auto-send share link ──
+    // Writes a row to GroupLinks (the source of truth for adoption claims),
+    // optionally adds the POC themselves as the first signup, and fires the
+    // Make webhook so Jarred + the POC get their respective emails.
     if (data.role === "group_lead") {
       const missing: Record<string, string[]> = {};
       if (!data.orgName?.trim()) missing.orgName = ["Organization name is required"];
@@ -226,14 +228,76 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Fire the group-lead webhook — Make.com handles Jarred's heads-up email
-      // and the auto-reply to the POC. No sheet write, no capacity changes.
+      // Authoritative conflict check uses GroupLinks (works even before any
+      // signups land). Fall back to signup-row scan as a belt-and-suspenders
+      // signal in case a legacy claim never made it into GroupLinks.
+      const orgNameTrim = data.orgName!.trim();
+      const [activeClaim, existingRows] = await Promise.all([
+        getActiveGroupLinkForRallyPoint(data.rallyPointId),
+        getSignups(),
+      ]);
+      const signupConflict = detectGroupConflict(existingRows, data.rallyPointId);
+      const conflict = activeClaim
+        ? { conflict: true, conflictingGroupCode: activeClaim.group_code }
+        : signupConflict;
+
+      const groupCode = !conflict.conflict ? buildGroupCode(orgNameTrim) : null;
+      const shareLink = groupCode
+        ? buildShareLink({ groupCode, orgName: orgNameTrim, rallyPointId: data.rallyPointId })
+        : "";
+
+      // If we minted a group code, persist the claim so the dashboard, map, and
+      // future intake checks all see the reservation immediately.
+      if (groupCode) {
+        try {
+          await addGroupLink({
+            group_code: groupCode,
+            org_name: orgNameTrim,
+            rally_point_id: data.rallyPointId,
+            expected_size: data.expectedSize ?? 0,
+            poc_name: data.name,
+            poc_email: data.email,
+            source: "auto",
+          });
+        } catch (err) {
+          console.error("Failed to write GroupLinks row:", err);
+          // Continue — the share link still works without the metadata row.
+        }
+      }
+
+      // POC opted in to attend → register them as the first volunteer under
+      // this group code so their seat is real (not just reserved).
+      if (data.attending && groupCode) {
+        try {
+          await addSignup({
+            name: data.name,
+            email: data.email,
+            phone: data.phone || null,
+            groupSize: 1,
+            church: orgNameTrim,
+            tshirtSize: data.tshirtSize || null,
+            role: "volunteer",
+            rallyPointId: data.rallyPointId,
+            groupMembers: [],
+            previousSweep: null,
+            meetingPreference: null,
+            groupCode,
+          });
+        } catch (err) {
+          console.error("Failed to add POC as first volunteer:", err);
+        }
+      }
+
+      const dashboardUrl = groupCode
+        ? `${process.env.NEXT_PUBLIC_SITE_URL || "https://indystreetsweep.com"}/group/${groupCode}`
+        : "";
+
       if (process.env.MAKE_GROUP_LEAD_WEBHOOK_URL) {
         fetch(process.env.MAKE_GROUP_LEAD_WEBHOOK_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            orgName: data.orgName,
+            orgName: orgNameTrim,
             orgType: data.orgType,
             expectedSize: data.expectedSize,
             notes: data.notes || null,
@@ -245,6 +309,12 @@ export async function POST(request: NextRequest) {
             preferredRallyPointAddress: targetPoint.address,
             preferredRallyPointZone: targetPoint.zone || "",
             submittedAt: new Date().toISOString(),
+            shareLink,
+            dashboardUrl,
+            groupCode: groupCode || "",
+            hasConflict: conflict.conflict,
+            conflictingGroupCode: conflict.conflictingGroupCode || "",
+            pocAttending: Boolean(data.attending),
           }),
         }).catch((err) => console.error("Make group-lead webhook error:", err));
       } else {
@@ -265,6 +335,8 @@ export async function POST(request: NextRequest) {
             },
             eventDate: EVENT_DATE_DISPLAY,
             eventTime: EVENT_TIME_DISPLAY,
+            shareLinkSent: Boolean(shareLink),
+            dashboardUrl,
           },
         },
         { status: 201 }
@@ -294,11 +366,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Hard cap: never exceed the park's actual capacity.
     if (targetPoint.volunteer_count + totalPeople > targetPoint.capacity) {
       return NextResponse.json(
         { error: `${targetPoint.name} is full. Please choose another location.` },
         { status: 400 }
       );
+    }
+
+    // Soft reservation: if this park is adopted by a group, random volunteers
+    // (no matching groupCode) can only fill seats beyond the group's commitment.
+    // Members of the adopting group itself bypass this check because their
+    // signup eats into the seats already reserved for them.
+    const adoptedCode = targetPoint.adopted_code || "";
+    const expectedSize = targetPoint.expected_size || 0;
+    const isMatchingGroupMember = data.groupCode && data.groupCode === adoptedCode;
+    if (adoptedCode && !isMatchingGroupMember && expectedSize > 0) {
+      const reservedFloor = Math.max(targetPoint.volunteer_count, expectedSize);
+      const remainingForRandoms = targetPoint.capacity - reservedFloor;
+      if (totalPeople > remainingForRandoms) {
+        return NextResponse.json(
+          {
+            error: `${targetPoint.name} is reserved by ${targetPoint.adopted_by} (${expectedSize} spots committed). Please choose a different park.`,
+          },
+          { status: 400 }
+        );
+      }
     }
 
     // Prevent duplicate site leaders at the same rally point

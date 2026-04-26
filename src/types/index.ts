@@ -13,6 +13,12 @@ export interface RallyPoint {
 export interface RallyPointWithCount extends RallyPoint {
   volunteer_count: number;
   signup_count: number;
+  /** Soft reservation: the org name claiming this park (null if unclaimed) */
+  adopted_by?: string | null;
+  /** Group code of the active claim, if any */
+  adopted_code?: string | null;
+  /** How many seats the adopting org committed to bring */
+  expected_size?: number;
 }
 
 export interface GroupMember {
@@ -67,6 +73,7 @@ export interface SignupFormData {
   orgType: OrgType | "";
   expectedSize: number;
   notes: string;
+  attending: boolean;
 }
 
 export interface SignupConfirmation {
@@ -80,6 +87,8 @@ export interface SignupConfirmation {
   };
   eventDate: string;
   eventTime: string;
+  shareLinkSent?: boolean;
+  dashboardUrl?: string;
 }
 
 export type DensityLevel = "low" | "medium" | "high";

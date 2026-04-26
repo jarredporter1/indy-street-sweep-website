@@ -34,7 +34,7 @@ export function GroupLeadFields({
   return (
     <div className="space-y-4">
       <div className="bg-indy-cream border-l-4 border-indy-gold p-3 text-sm text-indy-navy">
-        Tell us about your group. We&apos;ll follow up to confirm a park and send a sign-up link you can share with everyone.
+        Tell us about your group. We&apos;ll email you a sign-up link your group can use to register at your park.
       </div>
 
       <Input
