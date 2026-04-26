@@ -69,7 +69,12 @@ export function LocationPicker({ rallyPoints, value, onChange, error, role }: Lo
                 const isSelected = value === rp.id;
                 const isFull = rp.volunteer_count >= rp.capacity;
                 const hasLeader = role === "site_leader" && !!rp.site_leader_id;
-                const isDisabled = isFull || hasLeader;
+                const isAdopted = !!rp.adopted_by;
+                // Group leads can't claim a park another group already adopted —
+                // surface it here so they self-select instead of getting bounced
+                // into the conflict path after submit.
+                const adoptionBlocks = isAdopted && role === "group_lead";
+                const isDisabled = isFull || hasLeader || adoptionBlocks;
                 return (
                   <button
                     key={rp.id}
@@ -85,13 +90,18 @@ export function LocationPicker({ rallyPoints, value, onChange, error, role }: Lo
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <div>
+                      <div className="min-w-0">
                         <span className="font-semibold text-sm text-indy-navy">
                           {rp.name}
                         </span>
                         <p className="text-xs text-gray-500 mt-0.5">
                           {rp.address}
                         </p>
+                        {isAdopted && (
+                          <p className="text-[10px] text-indy-gold font-bold uppercase tracking-wider mt-1 truncate">
+                            ⚑ Adopted by {rp.adopted_by}
+                          </p>
+                        )}
                       </div>
                       <div className="text-right shrink-0 ml-3">
                         <span className="text-xs font-semibold text-gray-700">
@@ -101,13 +111,17 @@ export function LocationPicker({ rallyPoints, value, onChange, error, role }: Lo
                           <p className="text-xs text-gray-400 font-semibold">Has leader</p>
                         ) : isFull ? (
                           <p className="text-xs text-gray-400 font-semibold">Full</p>
+                        ) : adoptionBlocks ? (
+                          <p className="text-xs text-gray-400 font-semibold">Already adopted</p>
+                        ) : isAdopted ? (
+                          <p className="text-xs font-semibold text-indy-gold">Group</p>
                         ) : (
-                        <p className="text-xs" style={{
-                          color: density === "low" ? "#8fcea0" :
-                          density === "medium" ? "#2ea043" : "#013d0e"
-                        }}>
-                          {DENSITY_LABELS[density]}
-                        </p>
+                          <p className="text-xs" style={{
+                            color: density === "low" ? "#8fcea0" :
+                            density === "medium" ? "#2ea043" : "#013d0e"
+                          }}>
+                            {DENSITY_LABELS[density]}
+                          </p>
                         )}
                       </div>
                     </div>

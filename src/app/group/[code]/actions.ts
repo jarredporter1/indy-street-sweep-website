@@ -3,6 +3,7 @@
 import { addSignup, getRallyPointById, getRallyPointsWithCounts, getSignups, COL_GROUP_CODE } from "@/lib/sheets";
 import { getGroupLinkByCode } from "@/lib/group-links";
 import { buildShareLink } from "@/lib/share-link";
+import { EVENT_DATE_DISPLAY, EVENT_TIME_DISPLAY } from "@/lib/constants";
 
 export interface GroupDashboardSignup {
   name: string;
@@ -126,6 +127,30 @@ export async function addPersonToGroup(formData: FormData): Promise<AddPersonRes
     meetingPreference: null,
     groupCode: code,
   });
+
+  // Fire the standard signup webhook so the manually-added person gets the
+  // same "You're In!" confirmation email as someone who clicked the link.
+  if (process.env.MAKE_SIGNUP_WEBHOOK_URL) {
+    fetch(process.env.MAKE_SIGNUP_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name,
+        email,
+        phone: phone || null,
+        groupSize: 1,
+        church: link.org_name,
+        tshirtSize: tshirtSize || null,
+        role: "volunteer",
+        rallyPointName: rallyPoint.name,
+        rallyPointAddress: rallyPoint.address,
+        rallyPointZone: rallyPoint.zone || "",
+        eventDate: EVENT_DATE_DISPLAY,
+        eventTime: EVENT_TIME_DISPLAY,
+        groupCode: code,
+      }),
+    }).catch((err) => console.error("Make signup webhook error (manual add):", err));
+  }
 
   return { ok: true };
 }
