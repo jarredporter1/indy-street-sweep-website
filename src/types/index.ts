@@ -39,6 +39,17 @@ export interface Volunteer {
   meeting_preference: string | null;
 }
 
+export type SignupRole = "volunteer" | "site_leader" | "group_lead";
+
+export type OrgType =
+  | "church"
+  | "company"
+  | "nonprofit"
+  | "school"
+  | "scout_youth"
+  | "neighborhood"
+  | "other";
+
 export interface SignupFormData {
   name: string;
   email: string;
@@ -46,11 +57,16 @@ export interface SignupFormData {
   groupSize: number;
   church: string;
   tshirtSize: string;
-  role: "volunteer" | "site_leader";
+  role: SignupRole;
   rallyPointId: string;
   groupMembers: GroupMember[];
   previousSweep: string;
   meetingPreference: string;
+  // group_lead fields
+  orgName: string;
+  orgType: OrgType | "";
+  expectedSize: number;
+  notes: string;
 }
 
 export interface SignupConfirmation {

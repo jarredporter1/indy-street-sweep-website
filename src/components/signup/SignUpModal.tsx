@@ -10,7 +10,7 @@ interface SignUpModalProps {
 }
 
 export function SignUpModal({ rallyPoints }: SignUpModalProps) {
-  const { isOpen, preselectedRallyPointId, close } = useSignUpModal();
+  const { isOpen, preselectedRallyPointId, shareLink, close } = useSignUpModal();
 
   return (
     <Modal isOpen={isOpen} onClose={close}>
@@ -18,6 +18,7 @@ export function SignUpModal({ rallyPoints }: SignUpModalProps) {
         key={isOpen ? "open" : "closed"}
         rallyPoints={rallyPoints}
         preselectedRallyPointId={preselectedRallyPointId}
+        shareLink={shareLink}
         onClose={close}
       />
     </Modal>

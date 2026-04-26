@@ -205,6 +205,72 @@ export async function POST(request: NextRequest) {
     const data = result.data;
     const groupMembers = data.groupMembers ?? [];
 
+    // ── Group-lead intake: register interest only, no sheet write ──
+    // This path is for orgs/churches asking to adopt a whole rally point.
+    // We don't reserve seats or count them as volunteers — Jarred coordinates
+    // by email, then sends a share-link the org distributes to their group.
+    if (data.role === "group_lead") {
+      const missing: Record<string, string[]> = {};
+      if (!data.orgName?.trim()) missing.orgName = ["Organization name is required"];
+      if (!data.orgType) missing.orgType = ["Please select an organization type"];
+      if (!data.expectedSize) missing.expectedSize = ["Estimated group size is required"];
+      if (Object.keys(missing).length > 0) {
+        return NextResponse.json({ errors: missing }, { status: 400 });
+      }
+
+      const targetPoint = await getRallyPointById(data.rallyPointId);
+      if (!targetPoint) {
+        return NextResponse.json(
+          { error: "Rally point not found. Please select a valid location." },
+          { status: 400 }
+        );
+      }
+
+      // Fire the group-lead webhook — Make.com handles Jarred's heads-up email
+      // and the auto-reply to the POC. No sheet write, no capacity changes.
+      if (process.env.MAKE_GROUP_LEAD_WEBHOOK_URL) {
+        fetch(process.env.MAKE_GROUP_LEAD_WEBHOOK_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            orgName: data.orgName,
+            orgType: data.orgType,
+            expectedSize: data.expectedSize,
+            notes: data.notes || null,
+            pocName: data.name,
+            pocEmail: data.email,
+            pocPhone: data.phone,
+            preferredRallyPointId: data.rallyPointId,
+            preferredRallyPointName: targetPoint.name,
+            preferredRallyPointAddress: targetPoint.address,
+            preferredRallyPointZone: targetPoint.zone || "",
+            submittedAt: new Date().toISOString(),
+          }),
+        }).catch((err) => console.error("Make group-lead webhook error:", err));
+      } else {
+        console.warn("MAKE_GROUP_LEAD_WEBHOOK_URL not set — group-lead intake submitted but no webhook fired.");
+      }
+
+      return NextResponse.json(
+        {
+          success: true,
+          confirmation: {
+            name: data.name,
+            role: "group_lead",
+            groupSize: data.expectedSize ?? 0,
+            rallyPoint: {
+              name: targetPoint.name,
+              address: targetPoint.address,
+              zone: targetPoint.zone || "",
+            },
+            eventDate: EVENT_DATE_DISPLAY,
+            eventTime: EVENT_TIME_DISPLAY,
+          },
+        },
+        { status: 201 }
+      );
+    }
+
     // Enforce site leader fields when role is site_leader
     if (data.role === "site_leader") {
       const missing: Record<string, string[]> = {};
@@ -258,6 +324,7 @@ export async function POST(request: NextRequest) {
       groupMembers,
       previousSweep: data.previousSweep ?? null,
       meetingPreference: data.meetingPreference ?? null,
+      groupCode: data.groupCode ?? null,
     });
 
     const rallyPoint = await getRallyPointById(data.rallyPointId);
@@ -285,6 +352,7 @@ export async function POST(request: NextRequest) {
         groupMembers: groupMembers.length > 0 ? groupMembers : undefined,
         previousSweep: data.previousSweep ?? undefined,
         meetingPreference: data.meetingPreference ?? undefined,
+        groupCode: data.groupCode ?? undefined,
       }),
     }).catch((err) => console.error("Make signup webhook error:", err));
 

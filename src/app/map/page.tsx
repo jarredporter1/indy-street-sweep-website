@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useMemo, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import type { RallyPointWithCount } from "@/types";
+import type { ShareLinkContext } from "@/components/signup/SignUpForm";
 import { RALLY_POINT_SEED_DATA, VOLUNTEER_GOAL } from "@/lib/constants";
 import { SignUpModalContext } from "@/hooks/useSignUpModal";
 import { useRallyPoints } from "@/hooks/useRallyPoints";
@@ -28,12 +30,34 @@ function getFallbackRallyPoints(): RallyPointWithCount[] {
 }
 
 export default function MapPage() {
+  return (
+    <Suspense fallback={<div className="h-screen bg-background" />}>
+      <MapPageInner />
+    </Suspense>
+  );
+}
+
+function MapPageInner() {
+  const searchParams = useSearchParams();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [preselectedRallyPointId, setPreselectedRallyPointId] = useState<string | null>(null);
 
   // Single source of truth — one fetch on mount, one poll every 30s
   const rallyPoints = useRallyPoints(getFallbackRallyPoints());
   const count = useVolunteerCount(0);
+
+  // Build share-link context from URL params if present (?group=...&church=...&park=...).
+  // When all three are present and the park resolves to a real rally point, we treat
+  // this as a group member following their POC's invite link.
+  const shareLink = useMemo<ShareLinkContext | null>(() => {
+    const group = searchParams?.get("group")?.trim() || "";
+    const church = searchParams?.get("church")?.trim() || "";
+    const park = searchParams?.get("park")?.trim() || "";
+    if (!group || !church || !park) return null;
+    const exists = rallyPoints.some((rp) => rp.id === park);
+    if (!exists) return null;
+    return { groupCode: group, church, rallyPointId: park };
+  }, [searchParams, rallyPoints]);
 
   const open = useCallback((rallyPointId?: string) => {
     setPreselectedRallyPointId(rallyPointId || null);
@@ -45,11 +69,20 @@ export default function MapPage() {
     setPreselectedRallyPointId(null);
   }, []);
 
+  // Auto-open the modal once when arriving via a valid share-link.
+  useEffect(() => {
+    if (shareLink && !isModalOpen) {
+      setIsModalOpen(true);
+    }
+    // Run only on shareLink resolution; we don't want to re-open on subsequent closes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shareLink]);
+
   const percentage = Math.min((count / VOLUNTEER_GOAL) * 100, 100);
 
   return (
     <SignUpModalContext.Provider
-      value={{ isOpen: isModalOpen, preselectedRallyPointId, open, close }}
+      value={{ isOpen: isModalOpen, preselectedRallyPointId, shareLink, open, close }}
     >
       <div className="h-screen flex flex-col bg-background">
         {/* Top bar */}

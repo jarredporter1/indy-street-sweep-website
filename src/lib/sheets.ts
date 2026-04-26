@@ -41,7 +41,7 @@ export async function getSignups() {
   const sheets = getSheets();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SHEET_ID,
-    range: "Signups!A2:N",
+    range: "Signups!A2:O",
   });
   return res.data.values || [];
 }
@@ -97,6 +97,7 @@ interface SignupData {
   groupMembers: Array<{ name: string; email: string; tshirtSize?: string }>;
   previousSweep: string | null;
   meetingPreference: string | null;
+  groupCode: string | null;
 }
 
 export async function addSignup(data: SignupData) {
@@ -124,6 +125,7 @@ export async function addSignup(data: SignupData) {
     hasGroupMembers ? "TRUE" : "",                        // L: is_group_leader
     data.previousSweep || "",                             // M: previous_sweep
     data.meetingPreference || "",                          // N: meeting_preference
+    sanitizeForSheet(data.groupCode || ""),               // O: group_code
   ]);
 
   // Additional group member rows
@@ -143,12 +145,13 @@ export async function addSignup(data: SignupData) {
       "FALSE",                                            // L: is_group_leader
       "",                                                 // M: previous_sweep
       "",                                                 // N: meeting_preference
+      sanitizeForSheet(data.groupCode || ""),             // O: group_code (inherit)
     ]);
   }
 
   await sheets.spreadsheets.values.append({
     spreadsheetId: SHEET_ID,
-    range: "Signups!A:N",
+    range: "Signups!A:O",
     valueInputOption: "RAW",
     requestBody: { values: rows },
   });
