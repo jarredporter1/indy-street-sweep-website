@@ -36,7 +36,7 @@ export const metadata: Metadata = {
     siteName: "Street Sweep Indy",
     images: [
       {
-        url: "/images/social sharing street sweep.png",
+        url: "/images/social.png",
         width: 1200,
         height: 630,
         alt: "Street Sweep Indy - 777 volunteers cleaning up Indianapolis",
@@ -48,7 +48,7 @@ export const metadata: Metadata = {
     title: "Street Sweep Indy",
     description:
       "777 volunteers. 26 parks. 1 city. July 7, 2026. Join the biggest cleanup day Indianapolis has ever seen.",
-    images: ["/images/social sharing street sweep.png"],
+    images: ["/images/social.png"],
   },
 };
 
