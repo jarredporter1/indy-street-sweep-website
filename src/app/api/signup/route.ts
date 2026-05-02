@@ -67,13 +67,13 @@ const MILESTONE_CONTENT: Record<number, (count: number, remaining: number) => Mi
     headline: "200!",
     lines: [
       `200 people waking up early on a Tuesday in July to clean Indianapolis parks.`,
-      `That's not normal — that's special. We're a quarter of the way to 777.`,
+      `That's not normal. That's special. We're a quarter of the way to 777.`,
       `${remaining} spots remain. The momentum is building.`,
     ],
     cta: "Help Us Keep Going",
   }),
   300: (_count, remaining) => ({
-    subject: "300 Volunteers — Almost Halfway",
+    subject: "300 Volunteers, Almost Halfway",
     headline: "300!",
     lines: [
       `We're almost halfway to 777. At this pace, we're going to hit our goal.`,
@@ -139,45 +139,45 @@ function getMilestoneEmail(milestone: number, count: number): MilestoneEmail | n
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body style="margin:0;padding:0;font-family:Arial,sans-serif;line-height:1.6;color:#333;background:#f4f4f4;">
-<div style="max-width:600px;margin:0 auto;background:#ffffff;">
+<body style="margin:0;padding:0;background:#fff5ea;">
+<div style="background:#fff5ea;padding:24px 12px;">
+<div style="font-family:Georgia,'Times New Roman',serif;max-width:600px;margin:0 auto;background:#ffffff;color:#0a0a0a;line-height:1.65;border-radius:10px;overflow:hidden;border:1px solid #e8e0d2;">
 
-<div style="background:#2D5016;color:white;padding:40px 20px;text-align:center;">
-  <h1 style="font-size:48px;margin:0;font-weight:bold;">${headline}</h1>
-  <p style="font-size:20px;margin:10px 0 0 0;color:#e0e0e0;">We Just Hit ${milestone} Volunteers</p>
+<div style="background:#013d0e;padding:48px 24px;text-align:center;">
+  <p style="font-family:'Montserrat',Helvetica,Arial,sans-serif;color:#2ea043;font-size:11px;letter-spacing:2px;text-transform:uppercase;font-weight:700;margin:0 0 12px 0;">Indy Street Sweep</p>
+  <h1 style="font-family:'Montserrat',Helvetica,Arial,sans-serif;color:#fff5ea;font-size:64px;margin:0;font-weight:800;letter-spacing:-2px;line-height:1;">${headline}</h1>
+  <p style="font-family:'Montserrat',Helvetica,Arial,sans-serif;color:#cfe8d4;font-size:14px;margin:14px 0 0 0;letter-spacing:1px;text-transform:uppercase;font-weight:600;">We just hit ${milestone} volunteers</p>
 </div>
 
-<div style="padding:30px 20px;">
-  <p style="font-size:16px;">Hey [NAME],</p>
+<div style="padding:32px 28px;">
+  <p style="font-size:17px;margin:0 0 18px 0;">Hey [NAME],</p>
 
-  ${lines.map((line) => `<p style="font-size:16px;line-height:1.8;">${line}</p>`).join("\n  ")}
+  ${lines.map((line) => `<p style="font-size:16px;line-height:1.7;margin:0 0 14px 0;">${line}</p>`).join("\n  ")}
 
-  <div style="background:#e0e0e0;height:30px;border-radius:15px;margin:25px 0 10px;overflow:hidden;">
-    <div style="background:linear-gradient(90deg,#2D5016,#4CAF50);height:100%;width:${progressWidth}%;border-radius:15px;"></div>
-  </div>
-  <p style="text-align:center;margin:0 0 25px;font-size:18px;font-weight:bold;color:#2D5016;">${count} / 777 volunteers (${pct}%)</p>
-
-  <div style="background:#f4f4f4;padding:20px;border-left:4px solid #4CAF50;margin:20px 0;">
-    <p style="margin:5px 0;font-size:15px;">&#9989; ${count} volunteers signed up</p>
-    <p style="margin:5px 0;font-size:15px;">&#127919; ${remaining} spots left to fill</p>
-    <p style="margin:5px 0;font-size:15px;">&#128205; 26 rally points across Indianapolis</p>
-    <p style="margin:5px 0;font-size:15px;">&#128197; July 7, 2026 &middot; 8:00–10:00 AM</p>
+  <div style="background:#fff5ea;border-radius:8px;padding:18px 22px;margin:28px 0 24px 0;">
+    <p style="font-family:'Montserrat',Helvetica,Arial,sans-serif;margin:0 0 10px 0;font-weight:700;font-size:12px;letter-spacing:1.4px;text-transform:uppercase;color:#013d0e;text-align:center;">${count} of 777 volunteers · ${pct}%</p>
+    <div style="background:#e8e0d2;height:14px;border-radius:7px;overflow:hidden;">
+      <div style="background:#2ea043;height:100%;width:${progressWidth}%;border-radius:7px;"></div>
+    </div>
   </div>
 
-  <div style="text-align:center;margin:25px 0;">
-    <a href="https://indystreetsweep.com" style="display:inline-block;background:#4CAF50;color:white;padding:15px 40px;text-decoration:none;border-radius:5px;font-weight:bold;font-size:16px;">${cta}</a>
+  <div style="background:#fff5ea;border-left:4px solid #013d0e;padding:18px 22px;margin:0 0 28px 0;border-radius:4px;">
+    <p style="margin:4px 0;font-size:15px;color:#0a0a0a;">&#9989; <strong>${count}</strong> volunteers signed up</p>
+    <p style="margin:4px 0;font-size:15px;color:#0a0a0a;">&#127919; <strong>${remaining}</strong> spots left to fill</p>
+    <p style="margin:4px 0;font-size:15px;color:#0a0a0a;">&#128205; 26 rally points across Indianapolis</p>
+    <p style="margin:4px 0;font-size:15px;color:#0a0a0a;">&#128197; July 7, 2026 · 8:00 to 10:00 AM</p>
   </div>
 
-  <p style="font-size:15px;">This is happening,</p>
-  <p style="font-size:15px;"><strong>Trace Burgess</strong><br>
-  Indy Street Sweep<br>
-  <a href="https://indystreetsweep.com" style="color:#4CAF50;">indystreetsweep.com</a></p>
+  <div style="text-align:center;margin:0 0 32px 0;">
+    <a href="https://indystreetsweep.com" style="font-family:'Montserrat',Helvetica,Arial,sans-serif;display:inline-block;background:#2ea043;color:#ffffff;padding:14px 36px;text-decoration:none;border-radius:6px;font-weight:700;font-size:15px;letter-spacing:0.5px;">${cta}</a>
+  </div>
+
+  <p style="margin:0;font-size:14px;border-top:1px solid #e8e0d2;padding-top:20px;color:#3d4a3d;">This is happening,<br><strong style="color:#013d0e;font-size:15px;">Trace Burgess</strong><br><span style="font-family:'Montserrat',Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:0.5px;text-transform:uppercase;color:#5b5b5b;">Indy Street Sweep</span><br><a href="https://indystreetsweep.com" style="color:#013d0e;text-decoration:none;">indystreetsweep.com</a></p>
 </div>
 
-<div style="background:#f8f8f8;padding:20px;text-align:center;font-size:14px;color:#666;">
-  <p style="margin:0;">777 volunteers. 26 parks. 1 morning. 1 city.</p>
-</div>
+<div style="background:#013d0e;color:#cfe8d4;padding:18px 28px;text-align:center;font-size:12px;font-family:'Montserrat',Helvetica,Arial,sans-serif;letter-spacing:0.5px;">777 volunteers. 26 parks. 1 morning. 1 city.</div>
 
+</div>
 </div>
 </body>
 </html>`;
